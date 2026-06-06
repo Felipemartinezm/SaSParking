@@ -1,0 +1,68 @@
+<main class="min-h-screen bg-gray-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="flex justify-center text-cyan-400">
+      <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+      </svg>
+    </div>
+    <h2 class="mt-6 text-center text-3xl font-extrabold text-white">Iniciar Sesión</h2>
+    <p class="mt-2 text-center text-sm text-gray-400">Accede a tu panel corporativo</p>
+  </div>
+
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-gray-900 py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-gray-800">
+      <form class="space-y-6" (ngSubmit)="onSubmit()">
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-300">Correo Electrónico</label>
+          <div class="mt-1">
+            <input id="email" name="email" type="email" autocomplete="email" required [(ngModel)]="email"
+              class="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg shadow-sm placeholder-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-colors">
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-300">Contraseña</label>
+          <div class="mt-1">
+            <input id="password" name="password" type="password" autocomplete="current-password" required [(ngModel)]="password"
+              class="appearance-none block w-full px-3 py-2 border border-gray-700 rounded-lg shadow-sm placeholder-gray-500 bg-gray-800 text-white focus:outline-none focus:ring-cyan-500 focus:border-cyan-500 sm:text-sm transition-colors">
+          </div>
+        </div>
+
+        <div *ngIf="errorMessage" class="rounded-md bg-red-900/50 p-4 border border-red-800">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-red-300">{{ errorMessage }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <button type="submit" [disabled]="loading"
+            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 focus:ring-offset-gray-900 transition-colors disabled:opacity-50">
+            {{ loading ? 'Autenticando...' : 'Entrar' }}
+          </button>
+        </div>
+      </form>
+      
+      <div class="mt-6">
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-800"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-gray-900 text-gray-500">Cuentas de prueba</span>
+          </div>
+        </div>
+        <div class="mt-6 grid grid-cols-1 gap-2 text-xs text-gray-400">
+          <div>TechCorp: admin&#64;techcorp.com / 123456</div>
+          <div>SaS Solutions: admin&#64;sas.com / 123456</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
