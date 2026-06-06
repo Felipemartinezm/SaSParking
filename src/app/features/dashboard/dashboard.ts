@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -13,6 +13,7 @@ import { Supabase, Profile, CompanyArea, Visit } from '../../core/services/supab
 export class Dashboard implements OnInit {
   private supabase = inject(Supabase);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   profile$ = this.supabase.currentProfile$;
   currentProfile: Profile | null = null;
@@ -52,6 +53,7 @@ export class Dashboard implements OnInit {
     this.supabase.currentProfile$.subscribe(p => {
       this.currentProfile = p;
       if (p) this.loadDataForTab();
+      this.cdr.detectChanges();
     });
   }
 
@@ -83,6 +85,7 @@ export class Dashboard implements OnInit {
       console.error(e);
     }
     this.loadingData = false;
+    this.cdr.detectChanges();
   }
 
   showSuccess(msg: string) {
