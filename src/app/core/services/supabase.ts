@@ -10,6 +10,7 @@ export interface Profile {
   username: string;
   role: string;
   companies?: { name: string };
+  email?: string; // added manually via joined query if needed
 }
 
 @Injectable({
@@ -26,7 +27,6 @@ export class Supabase {
   constructor() {
     this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey);
     
-    // Check active session
     this.supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         this.setUserAndProfile(session.user);
@@ -66,5 +66,37 @@ export class Supabase {
 
   getUser() {
     return this.currentUserSubject.value;
+  }
+  
+  getProfile() {
+    return this.currentProfileSubject.value;
+  }
+
+  // --- User Management (RPC Wrappers) ---
+  
+  async getCompanyUsers() {
+    const profile = this.currentProfileSubject.value;
+    if (!profile) return { data: null, error: new Error('No profile') };
+    
+    // We fetch profiles and join with auth.users to get the email if possible.
+    // Wait, by default auth.users is NOT readable by normal users even with RLS!
+    // So we can only fetch from public.profiles. 
+    return this.supabase
+      .from('profiles')
+      .select('*')
+      .eq('company_id', profile.company_id)
+      .order('full_name', { ascending: true });
+  }
+
+  async createTenantUser(params: { new_email: string; new_password: string; new_role: string; new_full_name: string; new_username: string }) {
+    return this.supabase.rpc('create_tenant_user', params);
+  }
+
+  async updateTenantUser(params: { target_user_id: string; new_full_name: string; new_username: string; new_role: string; new_password?: string }) {
+    return this.supabase.rpc('update_tenant_user', params);
+  }
+
+  async deleteTenantUser(target_user_id: string) {
+    return this.supabase.rpc('delete_tenant_user', { target_user_id });
   }
 }
