@@ -1,4 +1,5 @@
 <div class="min-h-screen bg-gray-950 text-white flex flex-col relative">
+  <!-- Top Navigation -->
   <nav class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex justify-between items-center z-10 relative">
     <div class="flex items-center space-x-4">
       <div class="w-10 h-10 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -10,156 +11,276 @@
     </div>
     
     <div class="flex items-center space-x-6">
-      <div class="hidden sm:block text-right">
-        <p class="text-sm font-medium text-gray-200" *ngIf="profile$ | async as profile">{{ profile.full_name }}</p>
-        <p class="text-xs text-gray-500" *ngIf="profile$ | async as profile">{{ profile.companies?.name }} ({{ profile.role }})</p>
+      <div class="hidden sm:block text-right" *ngIf="currentProfile">
+        <p class="text-sm font-medium text-gray-200">{{ currentProfile.full_name }}</p>
+        <p class="text-xs text-gray-500">{{ currentProfile.companies?.name }} ({{ currentProfile.role }})</p>
       </div>
-      <button (click)="signOut()" class="text-gray-400 hover:text-white transition-colors focus:outline-none">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-        </svg>
+      <button (click)="signOut()" class="text-gray-400 hover:text-white transition-colors">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
       </button>
     </div>
   </nav>
 
-  <!-- Success Message Toast -->
+  <!-- Toasts -->
   <div *ngIf="successMessage" class="absolute top-20 right-6 z-50 bg-green-900/90 text-green-300 px-6 py-3 rounded-lg border border-green-800 shadow-2xl flex items-center space-x-3">
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
     <span>{{ successMessage }}</span>
+  </div>
+  <div *ngIf="errorMessage" class="absolute top-20 right-6 z-50 bg-red-900/90 text-red-300 px-6 py-3 rounded-lg border border-red-800 shadow-2xl flex items-center space-x-3">
+    <span>{{ errorMessage }}</span>
   </div>
 
   <main class="flex-1 p-6 sm:p-10 max-w-7xl mx-auto w-full">
-    <div *ngIf="profile$ | async as profile">
-      
-      <!-- Welcome Header -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
-        <div>
-          <h2 class="text-3xl font-bold text-white mb-2">Gestión de Usuarios</h2>
-          <p class="text-gray-400">Administra los accesos para <span class="text-cyan-400 font-semibold">{{ profile.companies?.name }}</span></p>
-        </div>
-        
-        <button *ngIf="profile.role === 'Admin'" (click)="openCreateModal()" class="inline-flex items-center px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-medium transition-colors shadow-lg shadow-cyan-900/20 border border-cyan-500">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-          Nuevo Usuario
+    
+    <!-- Tab Navigation -->
+    <div class="flex space-x-8 border-b border-gray-800 mb-8 overflow-x-auto">
+      <button (click)="setTab('camiones')" [ngClass]="currentTab === 'camiones' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-gray-500 hover:text-gray-300'" class="pb-4 px-2 border-b-2 font-medium whitespace-nowrap transition-colors">
+        Camiones en Planta
+      </button>
+      <button (click)="setTab('historico')" [ngClass]="currentTab === 'historico' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-gray-500 hover:text-gray-300'" class="pb-4 px-2 border-b-2 font-medium whitespace-nowrap transition-colors">
+        Histórico Visitas
+      </button>
+      <button *ngIf="currentProfile?.role === 'Admin'" (click)="setTab('areas')" [ngClass]="currentTab === 'areas' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-gray-500 hover:text-gray-300'" class="pb-4 px-2 border-b-2 font-medium whitespace-nowrap transition-colors">
+        Áreas de Planta
+      </button>
+      <button *ngIf="currentProfile?.role === 'Admin'" (click)="setTab('usuarios')" [ngClass]="currentTab === 'usuarios' ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-gray-500 hover:text-gray-300'" class="pb-4 px-2 border-b-2 font-medium whitespace-nowrap transition-colors">
+        Usuarios
+      </button>
+    </div>
+
+    <div *ngIf="loadingData" class="text-center py-12 text-gray-500">
+      Cargando información...
+    </div>
+
+    <!-- ==================== TAB: CAMIONES EN PLANTA ==================== -->
+    <div *ngIf="!loadingData && currentTab === 'camiones'">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Logística Activa</h2>
+        <button *ngIf="currentProfile?.role === 'Operario Patio' || currentProfile?.role === 'Admin'" (click)="openCreateVisitModal()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-medium shadow-lg shadow-cyan-900/20">
+          + Registrar Ingreso (Enrolar)
         </button>
       </div>
 
-      <!-- Users Table -->
-      <div class="bg-gray-900 rounded-2xl border border-gray-800 shadow-xl overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-gray-800/50 text-gray-400 text-sm border-b border-gray-800">
-                <th class="py-4 px-6 font-medium">Nombre</th>
-                <th class="py-4 px-6 font-medium">Usuario</th>
-                <th class="py-4 px-6 font-medium">Rol</th>
-                <th class="py-4 px-6 font-medium text-right" *ngIf="profile.role === 'Admin'">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-800/50">
-              <tr *ngIf="loadingUsers">
-                <td colspan="4" class="py-8 text-center text-gray-500">Cargando usuarios...</td>
-              </tr>
-              <tr *ngIf="!loadingUsers && users.length === 0">
-                <td colspan="4" class="py-8 text-center text-gray-500">No hay usuarios registrados.</td>
-              </tr>
-              <tr *ngFor="let user of users" class="hover:bg-gray-800/20 transition-colors">
-                <td class="py-4 px-6">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-gray-700 to-gray-600 flex items-center justify-center font-bold text-xs text-white uppercase">
-                      {{ user.full_name?.charAt(0) || 'U' }}
-                    </div>
-                    <span class="font-medium text-gray-200">{{ user.full_name }}</span>
-                    <span *ngIf="user.id === profile.id" class="ml-2 px-2 py-0.5 text-xs bg-cyan-900/30 text-cyan-400 rounded-full border border-cyan-800/50">Tú</span>
-                  </div>
-                </td>
-                <td class="py-4 px-6 text-gray-400">{{ user.username }}</td>
-                <td class="py-4 px-6">
-                  <span class="px-3 py-1 text-xs rounded-full border" 
-                        [ngClass]="user.role === 'Admin' ? 'bg-indigo-900/30 text-indigo-400 border-indigo-800/50' : 'bg-gray-800 text-gray-300 border-gray-700'">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td class="py-4 px-6 text-right space-x-2" *ngIf="profile.role === 'Admin'">
-                  <button (click)="openEditModal(user)" class="text-gray-400 hover:text-cyan-400 transition-colors p-1" title="Editar">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                  </button>
-                  <button *ngIf="user.id !== profile.id" (click)="deleteUser(user.id)" class="text-gray-400 hover:text-red-400 transition-colors p-1" title="Eliminar">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div *ngFor="let visit of activeVisits" class="bg-gray-900 rounded-xl border border-gray-800 p-5 flex flex-col shadow-xl">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <div class="text-xl font-bold font-mono tracking-wider text-white">{{ visit.truck_plate }}</div>
+              <div class="text-sm text-gray-400">Rampa: {{ visit.trailer_plate || 'N/A' }}</div>
+            </div>
+            <span class="px-3 py-1 text-xs rounded-full font-medium"
+              [ngClass]="{
+                'bg-yellow-900/30 text-yellow-400 border border-yellow-800/50': visit.status === 'En espera',
+                'bg-blue-900/30 text-blue-400 border border-blue-800/50': visit.status === 'En tránsito',
+                'bg-green-900/30 text-green-400 border border-green-800/50': visit.status === 'En área'
+              }">
+              {{ visit.status }}
+            </span>
+          </div>
+
+          <div class="space-y-2 mb-6 flex-1 text-sm">
+            <div class="flex text-gray-300"><span class="w-20 text-gray-500">Chofer:</span> {{ visit.driver_name }}</div>
+            <div class="flex text-gray-300"><span class="w-20 text-gray-500">DNI:</span> {{ visit.driver_dni || 'N/A' }}</div>
+            <div class="flex text-gray-300 mt-2">
+              <span class="w-20 text-gray-500">Ubicación:</span> 
+              <span class="text-cyan-300">{{ visit.current_area ? visit.current_area.name : 'Patio / Default' }}</span>
+            </div>
+            <div *ngIf="visit.requested_area" class="flex text-orange-300 mt-1 font-medium bg-orange-900/20 p-2 rounded">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+              Solicitado a: {{ visit.requested_area.name }}
+            </div>
+          </div>
+
+          <!-- Acciones de Flujo -->
+          <div class="pt-4 border-t border-gray-800 grid gap-2">
+            
+            <!-- Operarios (Cualquier área) -> Solicitar -->
+            <button *ngIf="(currentProfile?.role === 'Operario' || currentProfile?.role === 'Admin') && (visit.status === 'En espera' || visit.status === 'En área')" 
+                    (click)="openRequestModal(visit)" 
+                    class="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm rounded-lg border border-gray-700 transition">
+              Solicitar Movimiento
+            </button>
+
+            <!-- Operario Patio -> Despachar (Solo si fue solicitado) -->
+            <button *ngIf="(currentProfile?.role === 'Operario Patio' || currentProfile?.role === 'Admin') && visit.requested_area && visit.status !== 'En tránsito'" 
+                    (click)="actionDispatch(visit.id)" 
+                    class="w-full py-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-800 text-sm rounded-lg transition">
+              Despachar a Área
+            </button>
+
+            <!-- Operario (Área destino) -> Recibir -->
+            <button *ngIf="(currentProfile?.role === 'Operario' || currentProfile?.role === 'Admin') && visit.status === 'En tránsito' && visit.requested_area" 
+                    (click)="actionReceive(visit)" 
+                    class="w-full py-2 bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-800 text-sm rounded-lg transition">
+              Confirmar Recepción en Área
+            </button>
+
+            <!-- Finalizar / Salida -->
+            <button *ngIf="(currentProfile?.role === 'Operario Patio' || currentProfile?.role === 'Admin')" 
+                    (click)="actionFinalize(visit.id)" 
+                    class="w-full py-2 text-gray-500 hover:text-red-400 text-sm transition">
+              Marcar Salida (Finalizar)
+            </button>
+          </div>
+        </div>
+        <div *ngIf="activeVisits.length === 0" class="col-span-full py-12 text-center text-gray-500 bg-gray-900/50 rounded-2xl border border-gray-800 border-dashed">
+          No hay camiones en la planta actualmente.
         </div>
       </div>
     </div>
+
+    <!-- ==================== TAB: HISTORICO ==================== -->
+    <div *ngIf="!loadingData && currentTab === 'historico'">
+      <h2 class="text-2xl font-bold mb-6">Historial de Visitas</h2>
+      <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-gray-800/50 text-gray-400 border-b border-gray-800">
+            <tr>
+              <th class="py-3 px-4">Fecha/Hora</th>
+              <th class="py-3 px-4">Placa</th>
+              <th class="py-3 px-4">Chofer</th>
+              <th class="py-3 px-4">Última Ubicación</th>
+              <th class="py-3 px-4">Estado Final</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800">
+            <tr *ngFor="let visit of historicVisits" class="hover:bg-gray-800/20">
+              <td class="py-3 px-4 text-gray-400">{{ visit.created_at | date:'short' }}</td>
+              <td class="py-3 px-4 font-mono">{{ visit.truck_plate }}</td>
+              <td class="py-3 px-4">{{ visit.driver_name }}</td>
+              <td class="py-3 px-4 text-gray-400">{{ visit.current_area?.name || 'N/A' }}</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-1 text-xs rounded bg-gray-800 text-gray-400 border border-gray-700">
+                  {{ visit.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: ÁREAS ==================== -->
+    <div *ngIf="!loadingData && currentTab === 'areas'">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Configuración de Áreas</h2>
+        <button (click)="showAreaModal = true" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-medium">Nueva Área</button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div *ngFor="let area of areas" class="bg-gray-900 p-5 rounded-xl border border-gray-800 flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white flex items-center">
+              {{ area.name }}
+              <span *ngIf="area.is_default" class="ml-2 text-xs bg-indigo-900/30 text-indigo-400 px-2 py-0.5 rounded border border-indigo-800/50">Defecto</span>
+            </div>
+          </div>
+          <button *ngIf="!area.is_default" (click)="deleteArea(area.id)" class="text-gray-500 hover:text-red-400 transition-colors p-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB: USUARIOS ==================== -->
+    <div *ngIf="!loadingData && currentTab === 'usuarios'">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Gestión de Usuarios</h2>
+        <button (click)="openCreateUserModal()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-medium">Nuevo Usuario</button>
+      </div>
+      <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+        <table class="w-full text-left">
+          <thead class="bg-gray-800/50 border-b border-gray-800 text-gray-400 text-sm">
+            <tr>
+              <th class="py-3 px-4">Nombre</th>
+              <th class="py-3 px-4">Rol</th>
+              <th class="py-3 px-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800">
+            <tr *ngFor="let user of users" class="hover:bg-gray-800/20">
+              <td class="py-3 px-4">{{ user.full_name }}</td>
+              <td class="py-3 px-4"><span class="text-xs bg-gray-800 px-2 py-1 rounded text-gray-300 border border-gray-700">{{ user.role }}</span></td>
+              <td class="py-3 px-4 text-right space-x-2">
+                <button (click)="openEditUserModal(user)" class="text-gray-400 hover:text-cyan-400">Editar</button>
+                <button *ngIf="user.id !== currentProfile?.id" (click)="deleteUser(user.id)" class="text-gray-400 hover:text-red-400">Eliminar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
-</div>
 
-<!-- Modal Background Overlay -->
-<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm">
-  <div class="bg-gray-900 rounded-2xl border border-gray-800 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-    <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center">
-      <h3 class="text-lg font-bold text-white">{{ isEditing ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
-      <button (click)="closeModal()" class="text-gray-400 hover:text-white">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-    </div>
-    
-    <div class="p-6">
-      <div *ngIf="errorMessage" class="mb-4 p-3 bg-red-900/30 border border-red-800 text-red-400 text-sm rounded-lg">
-        {{ errorMessage }}
-      </div>
-      
-      <form class="space-y-4" (ngSubmit)="saveUser()">
-        
+  <!-- MODAL: Enrolar Visita -->
+  <div *ngIf="showVisitModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm">
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+      <h3 class="text-xl font-bold mb-4">Registro de Camión (Enrolar)</h3>
+      <form (ngSubmit)="saveVisit()" class="space-y-4">
+        <div><label class="block text-sm text-gray-400 mb-1">Nombre Completo (Chofer)</label><input type="text" required [(ngModel)]="modalVisit.driver_name" name="dn" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:border-cyan-500 outline-none"></div>
+        <div><label class="block text-sm text-gray-400 mb-1">Cédula / DNI</label><input type="text" [(ngModel)]="modalVisit.driver_dni" name="dni" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:border-cyan-500 outline-none"></div>
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Nombre Completo</label>
-            <input type="text" [(ngModel)]="modalUser.full_name" name="full_name" required
-              class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-1">Usuario (Alias)</label>
-            <input type="text" [(ngModel)]="modalUser.username" name="username" required
-              class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-          </div>
+          <div><label class="block text-sm text-gray-400 mb-1">Placa Camión</label><input type="text" required [(ngModel)]="modalVisit.truck_plate" name="tp" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white uppercase focus:border-cyan-500 outline-none"></div>
+          <div><label class="block text-sm text-gray-400 mb-1">Placa Rampa (Opc)</label><input type="text" [(ngModel)]="modalVisit.trailer_plate" name="rp" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white uppercase focus:border-cyan-500 outline-none"></div>
         </div>
-
-        <div *ngIf="!isEditing">
-          <label class="block text-sm font-medium text-gray-300 mb-1">Correo Electrónico</label>
-          <input type="email" [(ngModel)]="modalUser.email" name="email" required
-            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">
-            Contraseña <span *ngIf="isEditing" class="text-gray-500 text-xs font-normal">(Opcional, dejar vacío para no cambiar)</span>
-          </label>
-          <input type="password" [(ngModel)]="modalUser.password" name="password" [required]="!isEditing"
-            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1">Rol en el sistema</label>
-          <select [(ngModel)]="modalUser.role" name="role" required
-            class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-            <option value="Operario">Operario</option>
-            <option value="Admin">Administrador</option>
-          </select>
-        </div>
-
-        <div class="mt-8 flex justify-end space-x-3 pt-4 border-t border-gray-800">
-          <button type="button" (click)="closeModal()" class="px-4 py-2 text-sm font-medium text-gray-300 bg-transparent border border-gray-600 rounded-lg hover:bg-gray-800 transition-colors">
-            Cancelar
-          </button>
-          <button type="submit" [disabled]="modalLoading" class="px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 border border-cyan-500 rounded-lg disabled:opacity-50 transition-colors flex items-center shadow-lg shadow-cyan-900/20">
-            <svg *ngIf="modalLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            {{ modalLoading ? 'Guardando...' : 'Guardar Usuario' }}
-          </button>
+        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-800">
+          <button type="button" (click)="showVisitModal = false" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
+          <button type="submit" [disabled]="modalLoading" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded text-sm text-white disabled:opacity-50">Registrar y Enviar a Espera</button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- MODAL: Solicitar Camión -->
+  <div *ngIf="showRequestModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm">
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+      <h3 class="text-xl font-bold mb-4">Solicitar Camión a Área</h3>
+      <div class="mb-4 text-sm text-gray-400">Selecciona el área donde necesitas que se envíe el camión.</div>
+      <select [(ngModel)]="requestTargetAreaId" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none focus:border-cyan-500 mb-6">
+        <option value="" disabled>-- Selecciona un Área --</option>
+        <option *ngFor="let area of areas" [value]="area.id">{{ area.name }}</option>
+      </select>
+      <div class="flex justify-end space-x-3">
+        <button (click)="showRequestModal = false" class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
+        <button (click)="confirmRequest()" [disabled]="!requestTargetAreaId || modalLoading" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded text-sm text-white disabled:opacity-50">Confirmar Solicitud</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Usuarios -->
+  <div *ngIf="showUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm">
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 w-full max-w-sm shadow-2xl">
+      <h3 class="text-xl font-bold mb-4">{{ isEditingUser ? 'Editar' : 'Nuevo' }} Usuario</h3>
+      <form (ngSubmit)="saveUser()" class="space-y-4">
+        <div><label class="block text-sm text-gray-400 mb-1">Nombre</label><input type="text" required [(ngModel)]="modalUser.full_name" name="fn" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none"></div>
+        <div><label class="block text-sm text-gray-400 mb-1">Usuario</label><input type="text" required [(ngModel)]="modalUser.username" name="un" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none"></div>
+        <div *ngIf="!isEditingUser"><label class="block text-sm text-gray-400 mb-1">Email</label><input type="email" required [(ngModel)]="modalUser.email" name="em" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none"></div>
+        <div><label class="block text-sm text-gray-400 mb-1">Contraseña</label><input type="password" [required]="!isEditingUser" [(ngModel)]="modalUser.password" name="pw" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none"></div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1">Rol</label>
+          <select [(ngModel)]="modalUser.role" name="role" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none">
+            <option value="Operario">Operario Normal (Áreas)</option>
+            <option value="Operario Patio">Operario de Patio (Portón)</option>
+            <option value="Admin">Administrador</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-800">
+          <button type="button" (click)="showUserModal = false" class="px-4 py-2 text-sm text-gray-400">Cancelar</button>
+          <button type="submit" [disabled]="modalLoading" class="px-4 py-2 bg-cyan-600 rounded text-sm text-white disabled:opacity-50">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Nueva Área -->
+  <div *ngIf="showAreaModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm">
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 w-full max-w-sm shadow-2xl">
+      <h3 class="text-xl font-bold mb-4">Crear Nueva Área</h3>
+      <input type="text" [(ngModel)]="newAreaName" placeholder="Ej. Andén de Carga 1" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white outline-none focus:border-cyan-500 mb-6">
+      <div class="flex justify-end space-x-3">
+        <button (click)="showAreaModal = false" class="px-4 py-2 text-sm text-gray-400">Cancelar</button>
+        <button (click)="saveArea()" [disabled]="!newAreaName || modalLoading" class="px-4 py-2 bg-cyan-600 rounded text-sm text-white disabled:opacity-50">Guardar</button>
+      </div>
+    </div>
+  </div>
+
 </div>
